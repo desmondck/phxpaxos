@@ -299,6 +299,7 @@ void Acceptor :: OnAccept(const PaxosMsg & oPaxosMsg)
 
     BallotNumber oBallot(oPaxosMsg.proposalid(), oPaxosMsg.nodeid());
 
+    //当前的提案编号大于或等于已承诺的编号，接受该提案
     if (oBallot >= m_oAcceptorState.GetPromiseBallot())
     {
         PLGDebug("[Promise] State.PromiseID %lu State.PromiseNodeID %lu "
@@ -307,11 +308,13 @@ void Acceptor :: OnAccept(const PaxosMsg & oPaxosMsg)
                 m_oAcceptorState.GetPromiseBallot().m_llNodeID,
                 m_oAcceptorState.GetAcceptedBallot().m_llProposalID,
                 m_oAcceptorState.GetAcceptedBallot().m_llNodeID);
-
+        
+        //更新提案编号、提案值
         m_oAcceptorState.SetPromiseBallot(oBallot);
         m_oAcceptorState.SetAcceptedBallot(oBallot);
         m_oAcceptorState.SetAcceptedValue(oPaxosMsg.value());
         
+        //按Paxos协议P2.c不变性要求，数据需要持久化(包括实例号、提案编号、提案值)
         int ret = m_oAcceptorState.Persist(GetInstanceID(), GetLastChecksum());
         if (ret != 0)
         {
@@ -333,6 +336,7 @@ void Acceptor :: OnAccept(const PaxosMsg & oPaxosMsg)
                 m_oAcceptorState.GetPromiseBallot().m_llProposalID, 
                 m_oAcceptorState.GetPromiseBallot().m_llNodeID);
         
+        //已存在更高编号的提案，拒绝该提案并返回已承诺提案编号
         oReplyPaxosMsg.set_rejectbypromiseid(m_oAcceptorState.GetPromiseBallot().m_llProposalID);
     }
 

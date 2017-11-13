@@ -28,7 +28,7 @@ See the AUTHORS file for names of contributors.
 namespace phxpaxos
 {
 
-LearnerState :: LearnerState(const Config * poConfig, const LogStorage * poLogStorage)
+LearnerState::LearnerState(const Config *poConfig, const LogStorage *poLogStorage)
     : m_oPaxosLog(poLogStorage)
 {
     m_poConfig = (Config *)poConfig;
@@ -36,32 +36,32 @@ LearnerState :: LearnerState(const Config * poConfig, const LogStorage * poLogSt
     Init();
 }
 
-LearnerState :: ~LearnerState()
+LearnerState::~LearnerState()
 {
 }
 
-void LearnerState :: Init()
+void LearnerState::Init()
 {
     m_sLearnedValue = "";
     m_bIsLearned = false;
     m_iNewChecksum = 0;
 }
 
-const uint32_t LearnerState :: GetNewChecksum() const
+const uint32_t LearnerState::GetNewChecksum() const
 {
     return m_iNewChecksum;
 }
 
-void LearnerState :: LearnValueWithoutWrite(const uint64_t llInstanceID, 
-        const std::string & sValue, const uint32_t iNewChecksum)
+void LearnerState::LearnValueWithoutWrite(const uint64_t llInstanceID,
+                                          const std::string &sValue, const uint32_t iNewChecksum)
 {
     m_sLearnedValue = sValue;
     m_bIsLearned = true;
     m_iNewChecksum = iNewChecksum;
 }
 
-int LearnerState :: LearnValue(const uint64_t llInstanceID, const BallotNumber & oLearnedBallot, 
-        const std::string & sValue, const uint32_t iLastChecksum)
+int LearnerState::LearnValue(const uint64_t llInstanceID, const BallotNumber &oLearnedBallot,
+                             const std::string &sValue, const uint32_t iLastChecksum)
 {
     if (llInstanceID > 0 && iLastChecksum == 0)
     {
@@ -71,7 +71,7 @@ int LearnerState :: LearnValue(const uint64_t llInstanceID, const BallotNumber &
     {
         m_iNewChecksum = crc32(iLastChecksum, (const uint8_t *)sValue.data(), sValue.size(), CRC32SKIP);
     }
-    
+
     AcceptorStateData oState;
     oState.set_instanceid(llInstanceID);
     oState.set_acceptedvalue(sValue);
@@ -88,42 +88,42 @@ int LearnerState :: LearnValue(const uint64_t llInstanceID, const BallotNumber &
     if (ret != 0)
     {
         PLGErr("LogStorage.WriteLog fail, InstanceID %lu ValueLen %zu ret %d",
-                llInstanceID, sValue.size(), ret);
+               llInstanceID, sValue.size(), ret);
         return ret;
     }
 
     LearnValueWithoutWrite(llInstanceID, sValue, m_iNewChecksum);
 
     PLGDebug("OK, InstanceID %lu ValueLen %zu checksum %u",
-            llInstanceID, sValue.size(), m_iNewChecksum);
+             llInstanceID, sValue.size(), m_iNewChecksum);
 
     return 0;
 }
 
-const std::string & LearnerState :: GetLearnValue()
+const std::string &LearnerState::GetLearnValue()
 {
     return m_sLearnedValue;
 }
 
-const bool LearnerState :: GetIsLearned()
+const bool LearnerState::GetIsLearned()
 {
     return m_bIsLearned;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-Learner :: Learner(
-        const Config * poConfig, 
-        const MsgTransport * poMsgTransport,
-        const Instance * poInstance,
-        const Acceptor * poAcceptor,
-        const LogStorage * poLogStorage,
-        const IOLoop * poIOLoop,
-        const CheckpointMgr * poCheckpointMgr,
-        const SMFac * poSMFac)
-    : Base(poConfig, poMsgTransport, poInstance), m_oLearnerState(poConfig, poLogStorage), 
-    m_oPaxosLog(poLogStorage), m_oLearnerSender((Config *)poConfig, this, &m_oPaxosLog),
-    m_oCheckpointReceiver((Config *)poConfig, (LogStorage *)poLogStorage)
+Learner::Learner(
+    const Config *poConfig,
+    const MsgTransport *poMsgTransport,
+    const Instance *poInstance,
+    const Acceptor *poAcceptor,
+    const LogStorage *poLogStorage,
+    const IOLoop *poIOLoop,
+    const CheckpointMgr *poCheckpointMgr,
+    const SMFac *poSMFac)
+    : Base(poConfig, poMsgTransport, poInstance), m_oLearnerState(poConfig, poLogStorage),
+      m_oPaxosLog(poLogStorage), m_oLearnerSender((Config *)poConfig, this, &m_oPaxosLog),
+      m_oCheckpointReceiver((Config *)poConfig, (LogStorage *)poLogStorage)
 {
     m_poAcceptor = (Acceptor *)poAcceptor;
     InitForNewPaxosInstance();
@@ -143,39 +143,39 @@ Learner :: Learner(
     m_llLastAckInstanceID = 0;
 }
 
-Learner :: ~Learner()
+Learner::~Learner()
 {
     delete m_poCheckpointSender;
 }
 
-void Learner :: StartLearnerSender()
+void Learner::StartLearnerSender()
 {
     m_oLearnerSender.start();
 }
 
-const bool Learner :: IsLearned()
+const bool Learner::IsLearned()
 {
     return m_oLearnerState.GetIsLearned();
 }
 
-const std::string & Learner :: GetLearnValue()
+const std::string &Learner::GetLearnValue()
 {
     return m_oLearnerState.GetLearnValue();
 }
 
-void Learner :: InitForNewPaxosInstance()
+void Learner::InitForNewPaxosInstance()
 {
     m_oLearnerState.Init();
 }
 
-const uint32_t Learner :: GetNewChecksum() const
+const uint32_t Learner::GetNewChecksum() const
 {
     return m_oLearnerState.GetNewChecksum();
 }
 
 ////////////////////////////////////////////////////////////////
 
-void Learner :: Stop()
+void Learner::Stop()
 {
     m_oLearnerSender.Stop();
     if (m_poCheckpointSender != nullptr)
@@ -186,17 +186,17 @@ void Learner :: Stop()
 
 ////////////////////////////////////////////////////////////////
 
-const bool Learner :: IsIMLatest() 
+const bool Learner::IsIMLatest()
 {
     return (GetInstanceID() + 1) >= m_llHighestSeenInstanceID;
 }
 
-const uint64_t Learner :: GetSeenLatestInstanceID()
+const uint64_t Learner::GetSeenLatestInstanceID()
 {
     return m_llHighestSeenInstanceID;
 }
 
-void Learner :: SetSeenInstanceID(const uint64_t llInstanceID, const nodeid_t llFromNodeID)
+void Learner::SetSeenInstanceID(const uint64_t llInstanceID, const nodeid_t llFromNodeID)
 {
     if (llInstanceID > m_llHighestSeenInstanceID)
     {
@@ -207,7 +207,7 @@ void Learner :: SetSeenInstanceID(const uint64_t llInstanceID, const nodeid_t ll
 
 //////////////////////////////////////////////////////////////
 
-void Learner :: Reset_AskforLearn_Noop(const int iTimeout)
+void Learner::Reset_AskforLearn_Noop(const int iTimeout)
 {
     if (m_iAskforlearn_noopTimerID > 0)
     {
@@ -217,7 +217,7 @@ void Learner :: Reset_AskforLearn_Noop(const int iTimeout)
     m_poIOLoop->AddTimer(iTimeout, Timer_Learner_Askforlearn_noop, m_iAskforlearn_noopTimerID);
 }
 
-void Learner :: AskforLearn_Noop(const bool bIsStart)
+void Learner::AskforLearn_Noop(const bool bIsStart)
 {
     Reset_AskforLearn_Noop();
 
@@ -226,7 +226,7 @@ void Learner :: AskforLearn_Noop(const bool bIsStart)
     m_poCheckpointMgr->ExitCheckpointMode();
 
     AskforLearn();
-    
+
     if (bIsStart)
     {
         AskforLearn();
@@ -235,7 +235,7 @@ void Learner :: AskforLearn_Noop(const bool bIsStart)
 
 ///////////////////////////////////////////////////////////////
 
-void Learner :: AskforLearn()
+void Learner::AskforLearn()
 {
     BP->GetLearnerBP()->AskforLearn();
 
@@ -259,14 +259,14 @@ void Learner :: AskforLearn()
     BroadcastMessageToTempNode(oPaxosMsg, Message_SendType_UDP);
 }
 
-void Learner :: OnAskforLearn(const PaxosMsg & oPaxosMsg)
+void Learner::OnAskforLearn(const PaxosMsg &oPaxosMsg)
 {
     BP->GetLearnerBP()->OnAskforLearn();
-    
-    PLGHead("START Msg.InstanceID %lu Now.InstanceID %lu Msg.from_nodeid %lu MinChosenInstanceID %lu", 
+
+    PLGHead("START Msg.InstanceID %lu Now.InstanceID %lu Msg.from_nodeid %lu MinChosenInstanceID %lu",
             oPaxosMsg.instanceid(), GetInstanceID(), oPaxosMsg.nodeid(),
             m_poCheckpointMgr->GetMinChosenInstanceID());
-    
+
     SetSeenInstanceID(oPaxosMsg.instanceid(), oPaxosMsg.nodeid());
 
     if (oPaxosMsg.proposalnodeid() == m_poConfig->GetMyNodeID())
@@ -275,7 +275,7 @@ void Learner :: OnAskforLearn(const PaxosMsg & oPaxosMsg)
         PLImp("Found a node %lu follow me.", oPaxosMsg.nodeid());
         m_poConfig->AddFollowerNode(oPaxosMsg.nodeid());
     }
-    
+
     if (oPaxosMsg.instanceid() >= GetInstanceID())
     {
         return;
@@ -301,15 +301,15 @@ void Learner :: OnAskforLearn(const PaxosMsg & oPaxosMsg)
                     SendLearnValue(oPaxosMsg.nodeid(), oPaxosMsg.instanceid(), oBallot, oState.acceptedvalue(), 0, false);
                 }
             }
-            
+
             return;
         }
     }
-    
+
     SendNowInstanceID(oPaxosMsg.instanceid(), oPaxosMsg.nodeid());
 }
 
-void Learner :: SendNowInstanceID(const uint64_t llInstanceID, const nodeid_t iSendNodeID)
+void Learner::SendNowInstanceID(const uint64_t llInstanceID, const nodeid_t iSendNodeID)
 {
     BP->GetLearnerBP()->SendNowInstanceID();
 
@@ -322,7 +322,7 @@ void Learner :: SendNowInstanceID(const uint64_t llInstanceID, const nodeid_t iS
 
     if ((GetInstanceID() - llInstanceID) > 50)
     {
-        //instanceid too close not need to send vsm/master checkpoint. 
+        //instanceid too close not need to send vsm/master checkpoint.
         string sSystemVariablesCPBuffer;
         int ret = m_poConfig->GetSystemVSM()->GetCheckpointBuffer(sSystemVariablesCPBuffer);
         if (ret == 0)
@@ -344,12 +344,12 @@ void Learner :: SendNowInstanceID(const uint64_t llInstanceID, const nodeid_t iS
     SendMessage(iSendNodeID, oPaxosMsg);
 }
 
-void Learner :: OnSendNowInstanceID(const PaxosMsg & oPaxosMsg)
+void Learner::OnSendNowInstanceID(const PaxosMsg &oPaxosMsg)
 {
     BP->GetLearnerBP()->OnSendNowInstanceID();
 
     PLGHead("START Msg.InstanceID %lu Now.InstanceID %lu Msg.from_nodeid %lu Msg.MaxInstanceID %lu systemvariables_size %zu mastervariables_size %zu",
-            oPaxosMsg.instanceid(), GetInstanceID(), oPaxosMsg.nodeid(), oPaxosMsg.nowinstanceid(), 
+            oPaxosMsg.instanceid(), GetInstanceID(), oPaxosMsg.nodeid(), oPaxosMsg.nowinstanceid(),
             oPaxosMsg.systemvariables().size(), oPaxosMsg.mastervariables().size());
 
     SetSeenInstanceID(oPaxosMsg.nowinstanceid(), oPaxosMsg.nodeid());
@@ -401,7 +401,7 @@ void Learner :: OnSendNowInstanceID(const PaxosMsg & oPaxosMsg)
 
 ////////////////////////////////////////////
 
-void Learner :: ComfirmAskForLearn(const nodeid_t iSendNodeID)
+void Learner::ComfirmAskForLearn(const nodeid_t iSendNodeID)
 {
     BP->GetLearnerBP()->ComfirmAskForLearn();
 
@@ -420,7 +420,7 @@ void Learner :: ComfirmAskForLearn(const nodeid_t iSendNodeID)
     m_bIsIMLearning = true;
 }
 
-void Learner :: OnComfirmAskForLearn(const PaxosMsg & oPaxosMsg)
+void Learner::OnComfirmAskForLearn(const PaxosMsg &oPaxosMsg)
 {
     BP->GetLearnerBP()->OnComfirmAskForLearn();
 
@@ -437,18 +437,18 @@ void Learner :: OnComfirmAskForLearn(const PaxosMsg & oPaxosMsg)
     PLGImp("OK, success comfirm");
 }
 
-int Learner :: SendLearnValue(
-        const nodeid_t iSendNodeID,
-        const uint64_t llLearnInstanceID,
-        const BallotNumber & oLearnedBallot,
-        const std::string & sLearnedValue,
-        const uint32_t iChecksum,
-        const bool bNeedAck)
+int Learner::SendLearnValue(
+    const nodeid_t iSendNodeID,
+    const uint64_t llLearnInstanceID,
+    const BallotNumber &oLearnedBallot,
+    const std::string &sLearnedValue,
+    const uint32_t iChecksum,
+    const bool bNeedAck)
 {
     BP->GetLearnerBP()->SendLearnValue();
 
     PaxosMsg oPaxosMsg;
-    
+
     oPaxosMsg.set_msgtype(MsgType_PaxosLearner_SendLearnValue);
     oPaxosMsg.set_instanceid(llLearnInstanceID);
     oPaxosMsg.set_nodeid(m_poConfig->GetMyNodeID());
@@ -464,12 +464,12 @@ int Learner :: SendLearnValue(
     return SendMessage(iSendNodeID, oPaxosMsg, Message_SendType_TCP);
 }
 
-void Learner :: OnSendLearnValue(const PaxosMsg & oPaxosMsg)
+void Learner::OnSendLearnValue(const PaxosMsg &oPaxosMsg)
 {
     BP->GetLearnerBP()->OnSendLearnValue();
 
     PLGHead("START Msg.InstanceID %lu Now.InstanceID %lu Msg.ballot_proposalid %lu Msg.ballot_nodeid %lu Msg.ValueSize %zu",
-            oPaxosMsg.instanceid(), GetInstanceID(), oPaxosMsg.proposalid(), 
+            oPaxosMsg.instanceid(), GetInstanceID(), oPaxosMsg.proposalid(),
             oPaxosMsg.nodeid(), oPaxosMsg.value().size());
 
     if (oPaxosMsg.instanceid() > GetInstanceID())
@@ -492,8 +492,8 @@ void Learner :: OnSendLearnValue(const PaxosMsg & oPaxosMsg)
             PLGErr("LearnState.LearnValue fail, ret %d", ret);
             return;
         }
-        
-        PLGHead("END LearnValue OK, proposalid %lu proposalid_nodeid %lu valueLen %zu", 
+
+        PLGHead("END LearnValue OK, proposalid %lu proposalid_nodeid %lu valueLen %zu",
                 oPaxosMsg.proposalid(), oPaxosMsg.nodeid(), oPaxosMsg.value().size());
     }
 
@@ -506,7 +506,7 @@ void Learner :: OnSendLearnValue(const PaxosMsg & oPaxosMsg)
     }
 }
 
-void Learner :: SendLearnValue_Ack(const nodeid_t iSendNodeID)
+void Learner::SendLearnValue_Ack(const nodeid_t iSendNodeID)
 {
     PLGHead("START LastAck.Instanceid %lu Now.Instanceid %lu", m_llLastAckInstanceID, GetInstanceID());
 
@@ -515,7 +515,7 @@ void Learner :: SendLearnValue_Ack(const nodeid_t iSendNodeID)
         PLGImp("No need to ack");
         return;
     }
-    
+
     BP->GetLearnerBP()->SendLearnValue_Ack();
 
     m_llLastAckInstanceID = GetInstanceID();
@@ -530,7 +530,7 @@ void Learner :: SendLearnValue_Ack(const nodeid_t iSendNodeID)
     PLGHead("End. ok");
 }
 
-void Learner :: OnSendLearnValue_Ack(const PaxosMsg & oPaxosMsg)
+void Learner::OnSendLearnValue_Ack(const PaxosMsg &oPaxosMsg)
 {
     BP->GetLearnerBP()->OnSendLearnValue_Ack();
 
@@ -541,15 +541,15 @@ void Learner :: OnSendLearnValue_Ack(const PaxosMsg & oPaxosMsg)
 
 //////////////////////////////////////////////////////////////
 
-void Learner :: TransmitToFollower()
+void Learner::TransmitToFollower()
 {
     if (m_poConfig->GetMyFollowerCount() == 0)
     {
         return;
     }
-    
+
     PaxosMsg oPaxosMsg;
-    
+
     oPaxosMsg.set_msgtype(MsgType_PaxosLearner_SendLearnValue);
     oPaxosMsg.set_instanceid(GetInstanceID());
     oPaxosMsg.set_nodeid(m_poConfig->GetMyNodeID());
@@ -563,14 +563,14 @@ void Learner :: TransmitToFollower()
     PLGHead("ok");
 }
 
-void Learner :: ProposerSendSuccess(
-        const uint64_t llLearnInstanceID,
-        const uint64_t llProposalID)
+void Learner::ProposerSendSuccess(
+    const uint64_t llLearnInstanceID,
+    const uint64_t llProposalID)
 {
     BP->GetLearnerBP()->ProposerSendSuccess();
 
     PaxosMsg oPaxosMsg;
-    
+
     oPaxosMsg.set_msgtype(MsgType_PaxosLearner_ProposerSendSuccess);
     oPaxosMsg.set_instanceid(llLearnInstanceID);
     oPaxosMsg.set_nodeid(m_poConfig->GetMyNodeID());
@@ -581,15 +581,15 @@ void Learner :: ProposerSendSuccess(
     BroadcastMessage(oPaxosMsg, BroadcastMessage_Type_RunSelf_First);
 }
 
-void Learner :: OnProposerSendSuccess(const PaxosMsg & oPaxosMsg)
+void Learner::OnProposerSendSuccess(const PaxosMsg &oPaxosMsg)
 {
     BP->GetLearnerBP()->OnProposerSendSuccess();
 
     PLGHead("START Msg.InstanceID %lu Now.InstanceID %lu Msg.ProposalID %lu State.AcceptedID %lu "
             "State.AcceptedNodeID %lu, Msg.from_nodeid %lu",
-            oPaxosMsg.instanceid(), GetInstanceID(), oPaxosMsg.proposalid(), 
+            oPaxosMsg.instanceid(), GetInstanceID(), oPaxosMsg.proposalid(),
             m_poAcceptor->GetAcceptorState()->GetAcceptedBallot().m_llProposalID,
-            m_poAcceptor->GetAcceptorState()->GetAcceptedBallot().m_llNodeID, 
+            m_poAcceptor->GetAcceptorState()->GetAcceptedBallot().m_llNodeID,
             oPaxosMsg.nodeid());
 
     if (oPaxosMsg.instanceid() != GetInstanceID())
@@ -609,8 +609,7 @@ void Learner :: OnProposerSendSuccess(const PaxosMsg & oPaxosMsg)
 
     BallotNumber oBallot(oPaxosMsg.proposalid(), oPaxosMsg.nodeid());
 
-    if (m_poAcceptor->GetAcceptorState()->GetAcceptedBallot()
-            != oBallot)
+    if (m_poAcceptor->GetAcceptorState()->GetAcceptedBallot() != oBallot)
     {
         //Proposalid not same, this accept value maybe not chosen value.
         PLGDebug("ProposalBallot not same to AcceptedBallot");
@@ -620,10 +619,10 @@ void Learner :: OnProposerSendSuccess(const PaxosMsg & oPaxosMsg)
 
     //learn value.
     m_oLearnerState.LearnValueWithoutWrite(
-            oPaxosMsg.instanceid(),
-            m_poAcceptor->GetAcceptorState()->GetAcceptedValue(),
-            m_poAcceptor->GetAcceptorState()->GetChecksum());
-    
+        oPaxosMsg.instanceid(),
+        m_poAcceptor->GetAcceptorState()->GetAcceptedValue(),
+        m_poAcceptor->GetAcceptorState()->GetChecksum());
+
     BP->GetLearnerBP()->OnProposerSendSuccessSuccessLearn();
 
     PLGHead("END Learn value OK, value %zu", m_poAcceptor->GetAcceptorState()->GetAcceptedValue().size());
@@ -633,7 +632,7 @@ void Learner :: OnProposerSendSuccess(const PaxosMsg & oPaxosMsg)
 
 ////////////////////////////////////////////////////////////////////////
 
-void Learner :: AskforCheckpoint(const nodeid_t iSendNodeID)
+void Learner::AskforCheckpoint(const nodeid_t iSendNodeID)
 {
     PLGHead("START");
 
@@ -650,13 +649,13 @@ void Learner :: AskforCheckpoint(const nodeid_t iSendNodeID)
     oPaxosMsg.set_msgtype(MsgType_PaxosLearner_AskforCheckpoint);
 
     PLGHead("END InstanceID %lu MyNodeID %lu", GetInstanceID(), oPaxosMsg.nodeid());
-    
+
     SendMessage(iSendNodeID, oPaxosMsg);
 }
 
-void Learner :: OnAskforCheckpoint(const PaxosMsg & oPaxosMsg)
+void Learner::OnAskforCheckpoint(const PaxosMsg &oPaxosMsg)
 {
-    CheckpointSender * poCheckpointSender = GetNewCheckpointSender(oPaxosMsg.nodeid());
+    CheckpointSender *poCheckpointSender = GetNewCheckpointSender(oPaxosMsg.nodeid());
     if (poCheckpointSender != nullptr)
     {
         poCheckpointSender->start();
@@ -668,11 +667,11 @@ void Learner :: OnAskforCheckpoint(const PaxosMsg & oPaxosMsg)
     }
 }
 
-int Learner :: SendCheckpointBegin(
-        const nodeid_t iSendNodeID,
-        const uint64_t llUUID,
-        const uint64_t llSequence,
-        const uint64_t llCheckpointInstanceID)
+int Learner::SendCheckpointBegin(
+    const nodeid_t iSendNodeID,
+    const uint64_t llUUID,
+    const uint64_t llSequence,
+    const uint64_t llCheckpointInstanceID)
 {
     CheckpointMsg oCheckpointMsg;
 
@@ -684,16 +683,16 @@ int Learner :: SendCheckpointBegin(
     oCheckpointMsg.set_checkpointinstanceid(llCheckpointInstanceID);
 
     PLGImp("END, SendNodeID %lu uuid %lu sequence %lu cpi %lu",
-            iSendNodeID, llUUID, llSequence, llCheckpointInstanceID);
+           iSendNodeID, llUUID, llSequence, llCheckpointInstanceID);
 
     return SendMessage(iSendNodeID, oCheckpointMsg, Message_SendType_TCP);
 }
 
-int Learner :: SendCheckpointEnd(
-        const nodeid_t iSendNodeID,
-        const uint64_t llUUID,
-        const uint64_t llSequence,
-        const uint64_t llCheckpointInstanceID)
+int Learner::SendCheckpointEnd(
+    const nodeid_t iSendNodeID,
+    const uint64_t llUUID,
+    const uint64_t llSequence,
+    const uint64_t llCheckpointInstanceID)
 {
     CheckpointMsg oCheckpointMsg;
 
@@ -705,21 +704,21 @@ int Learner :: SendCheckpointEnd(
     oCheckpointMsg.set_checkpointinstanceid(llCheckpointInstanceID);
 
     PLGImp("END, SendNodeID %lu uuid %lu sequence %lu cpi %lu",
-            iSendNodeID, llUUID, llSequence, llCheckpointInstanceID);
+           iSendNodeID, llUUID, llSequence, llCheckpointInstanceID);
 
     return SendMessage(iSendNodeID, oCheckpointMsg, Message_SendType_TCP);
 }
 
-int Learner :: SendCheckpoint(
-        const nodeid_t iSendNodeID,
-        const uint64_t llUUID,
-        const uint64_t llSequence,
-        const uint64_t llCheckpointInstanceID,
-        const uint32_t iChecksum,
-        const std::string & sFilePath,
-        const int iSMID,
-        const uint64_t llOffset,
-        const std::string & sBuffer)
+int Learner::SendCheckpoint(
+    const nodeid_t iSendNodeID,
+    const uint64_t llUUID,
+    const uint64_t llSequence,
+    const uint64_t llCheckpointInstanceID,
+    const uint32_t iChecksum,
+    const std::string &sFilePath,
+    const int iSMID,
+    const uint64_t llOffset,
+    const std::string &sBuffer)
 {
     CheckpointMsg oCheckpointMsg;
 
@@ -736,13 +735,13 @@ int Learner :: SendCheckpoint(
     oCheckpointMsg.set_buffer(sBuffer);
 
     PLGImp("END, SendNodeID %lu uuid %lu sequence %lu cpi %lu checksum %u smid %d offset %lu buffsize %zu filepath %s",
-            iSendNodeID, llUUID, llSequence, llCheckpointInstanceID, 
-            iChecksum, iSMID, llOffset, sBuffer.size(), sFilePath.c_str());
+           iSendNodeID, llUUID, llSequence, llCheckpointInstanceID,
+           iChecksum, iSMID, llOffset, sBuffer.size(), sFilePath.c_str());
 
     return SendMessage(iSendNodeID, oCheckpointMsg, Message_SendType_TCP);
 }
 
-int Learner :: OnSendCheckpoint_Begin(const CheckpointMsg & oCheckpointMsg)
+int Learner::OnSendCheckpoint_Begin(const CheckpointMsg &oCheckpointMsg)
 {
     int ret = m_oCheckpointReceiver.NewReceiver(oCheckpointMsg.nodeid(), oCheckpointMsg.uuid());
     if (ret == 0)
@@ -753,7 +752,7 @@ int Learner :: OnSendCheckpoint_Begin(const CheckpointMsg & oCheckpointMsg)
         if (ret != 0)
         {
             PLGErr("SetMinChosenInstanceID fail, ret %d CheckpointInstanceID %lu",
-                    ret, oCheckpointMsg.checkpointinstanceid());
+                   ret, oCheckpointMsg.checkpointinstanceid());
 
             return ret;
         }
@@ -762,28 +761,27 @@ int Learner :: OnSendCheckpoint_Begin(const CheckpointMsg & oCheckpointMsg)
     return ret;
 }
 
-int Learner :: OnSendCheckpoint_Ing(const CheckpointMsg & oCheckpointMsg)
+int Learner::OnSendCheckpoint_Ing(const CheckpointMsg &oCheckpointMsg)
 {
     BP->GetCheckpointBP()->OnSendCheckpointOneBlock();
     return m_oCheckpointReceiver.ReceiveCheckpoint(oCheckpointMsg);
 }
 
-int Learner :: OnSendCheckpoint_End(const CheckpointMsg & oCheckpointMsg)
+int Learner::OnSendCheckpoint_End(const CheckpointMsg &oCheckpointMsg)
 {
-    if (!m_oCheckpointReceiver.IsReceiverFinish(oCheckpointMsg.nodeid(), 
-                oCheckpointMsg.uuid(), oCheckpointMsg.sequence()))
+    if (!m_oCheckpointReceiver.IsReceiverFinish(oCheckpointMsg.nodeid(),
+                                                oCheckpointMsg.uuid(), oCheckpointMsg.sequence()))
     {
         PLGErr("receive end msg but receiver not finish");
         return -1;
     }
-    
+
     BP->GetCheckpointBP()->ReceiveCheckpointDone();
 
     std::vector<StateMachine *> vecSMList = m_poSMFac->GetSMList();
-    for (auto & poSM : vecSMList)
+    for (auto &poSM : vecSMList)
     {
-        if (poSM->SMID() == SYSTEM_V_SMID
-                || poSM->SMID() == MASTER_V_SMID)
+        if (poSM->SMID() == SYSTEM_V_SMID || poSM->SMID() == MASTER_V_SMID)
         {
             //system variables sm no checkpoint
             //master variables sm no checkpoint
@@ -793,7 +791,7 @@ int Learner :: OnSendCheckpoint_End(const CheckpointMsg & oCheckpointMsg)
         string sTmpDirPath = m_oCheckpointReceiver.GetTmpDirPath(poSM->SMID());
         std::vector<std::string> vecFilePathList;
 
-        int ret = FileUtils :: IterDir(sTmpDirPath, vecFilePathList);
+        int ret = FileUtils::IterDir(sTmpDirPath, vecFilePathList);
         if (ret != 0)
         {
             PLGErr("IterDir fail, dirpath %s", sTmpDirPath.c_str());
@@ -804,18 +802,17 @@ int Learner :: OnSendCheckpoint_End(const CheckpointMsg & oCheckpointMsg)
             PLGImp("this sm %d have no checkpoint", poSM->SMID());
             continue;
         }
-        
+
         ret = poSM->LoadCheckpointState(
-                m_poConfig->GetMyGroupIdx(),
-                sTmpDirPath,
-                vecFilePathList,
-                oCheckpointMsg.checkpointinstanceid());
+            m_poConfig->GetMyGroupIdx(),
+            sTmpDirPath,
+            vecFilePathList,
+            oCheckpointMsg.checkpointinstanceid());
         if (ret != 0)
         {
             BP->GetCheckpointBP()->ReceiveCheckpointAndLoadFail();
             return ret;
         }
-
     }
 
     BP->GetCheckpointBP()->ReceiveCheckpointAndLoadSucc();
@@ -825,15 +822,15 @@ int Learner :: OnSendCheckpoint_End(const CheckpointMsg & oCheckpointMsg)
     return 0;
 }
 
-void Learner :: OnSendCheckpoint(const CheckpointMsg & oCheckpointMsg)
+void Learner::OnSendCheckpoint(const CheckpointMsg &oCheckpointMsg)
 {
     PLGHead("START uuid %lu flag %d sequence %lu cpi %lu checksum %u smid %d offset %lu buffsize %zu filepath %s",
-            oCheckpointMsg.uuid(), oCheckpointMsg.flag(), oCheckpointMsg.sequence(), 
-            oCheckpointMsg.checkpointinstanceid(), oCheckpointMsg.checksum(), oCheckpointMsg.smid(), 
+            oCheckpointMsg.uuid(), oCheckpointMsg.flag(), oCheckpointMsg.sequence(),
+            oCheckpointMsg.checkpointinstanceid(), oCheckpointMsg.checksum(), oCheckpointMsg.smid(),
             oCheckpointMsg.offset(), oCheckpointMsg.buffer().size(), oCheckpointMsg.filepath().c_str());
 
     int ret = 0;
-    
+
     if (oCheckpointMsg.flag() == CheckpointSendFileFlag_BEGIN)
     {
         ret = OnSendCheckpoint_Begin(oCheckpointMsg);
@@ -863,11 +860,11 @@ void Learner :: OnSendCheckpoint(const CheckpointMsg & oCheckpointMsg)
     }
 }
 
-int Learner :: SendCheckpointAck(
-        const nodeid_t iSendNodeID,
-        const uint64_t llUUID,
-        const uint64_t llSequence,
-        const int iFlag)
+int Learner::SendCheckpointAck(
+    const nodeid_t iSendNodeID,
+    const uint64_t llUUID,
+    const uint64_t llSequence,
+    const int iFlag)
 {
     CheckpointMsg oCheckpointMsg;
 
@@ -880,7 +877,7 @@ int Learner :: SendCheckpointAck(
     return SendMessage(iSendNodeID, oCheckpointMsg, Message_SendType_TCP);
 }
 
-void Learner :: OnSendCheckpointAck(const CheckpointMsg & oCheckpointMsg)
+void Learner::OnSendCheckpointAck(const CheckpointMsg &oCheckpointMsg)
 {
     PLGHead("START flag %d", oCheckpointMsg.flag());
 
@@ -897,7 +894,7 @@ void Learner :: OnSendCheckpointAck(const CheckpointMsg & oCheckpointMsg)
     }
 }
 
-CheckpointSender * Learner :: GetNewCheckpointSender(const nodeid_t iSendNodeID)
+CheckpointSender *Learner::GetNewCheckpointSender(const nodeid_t iSendNodeID)
 {
     if (m_poCheckpointSender != nullptr)
     {
@@ -917,9 +914,4 @@ CheckpointSender * Learner :: GetNewCheckpointSender(const nodeid_t iSendNodeID)
 
     return nullptr;
 }
-
-
 }
-
-
-
